@@ -605,7 +605,7 @@ private String childId;
 public class ChildId implements Serializable {
 	private String parent; //Child.parent 매핑
 	private String childId; //Child.childId 매핑
-}
+} 
 ```
 
 이런식으로 부모 클래스 인스턴스 변수로 가지고 추가로 IdClass 로 매핑
