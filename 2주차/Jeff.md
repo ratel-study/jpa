@@ -376,3 +376,342 @@ JPA 에서 지원하지 않음
 
 → 관리하기 편하고 단순하고 간편함
   getId에 있으면 → 접근자
+
+
+# 07. 고급매핑
+
+- 상속 관계 매핑
+- @MappedSuperclass
+    - 등록, 수정일 같이 여러 엔티티에서 공통으로 사용하는 매핑 정보 상속
+- 복합키, 식별 관계 매핑
+    - DB 식별자가 하나 이상인 경우 매핑
+- 조인 테이블
+    - 연결 테이블 매핑하는 방법
+- 엔티티 하나에 여러 테이블 매핑
+
+## 7.1. 상속 관계 매핑
+
+- DB에서는 상속 개념 X
+
+  → 가장 유사한 Super-Tye & Sub-Type RelationShip
+
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/e5676aba-9edc-4d40-9e9d-d230244e2b52/Untitled.png)
+
+슈퍼- 서브 타입 논리 모델을 테이블로 구현 하는 방법 3가지
+
+1. 각각의 테이블로 변환
+
+   ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/5697647d-f94c-4cb2-b571-a795184115be/Untitled.png)
+
+2. 통합 테이블로 변환
+
+   ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/658c4c5d-506a-49b8-96a6-0be551a88dc8/Untitled.png)
+
+3. 서브타입 테이블로 변환
+
+   ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/43eb3d17-db54-46b3-9345-a0534e050461/Untitled.png)
+
+
+### 7.1.1 조인 전략
+
+> 엔티티 각각을 모두 테이블로 생성
+→ 자식 테이블이 부모 테이블의 기본키를 받아서 기본키 + 외래키로 사용
+>
+
+# 부모 테이블에 타입을 구분 할 수 있는 구분자가 있어야함
+
+- @Inheritance(strategy = InheritanceType.JOINED)
+    - 상속 매핑 전략 설정
+- @DiscriminatorColumn
+    - 구분자 컬럼 지정
+- @DiscriminatorValue
+    - 구분자 값 지정
+- @PrimaryKeyJoinColumn
+    - 자식 테이블의 기본 키 컬럼 명 변경 하고 싶은 경우 매핑
+
+### 장점
+
+- 테이블이 정규화 됨
+- 외래 키 참조 무결성 제약조건 활용 가능
+- 저장공간 효율적으로 사용
+
+### 단점
+
+- 조회할 때 조인이 많이 사용되어 성능 저하
+- 조회 쿼리 복잡
+- INSERT 각 각 해야함
+
+### 7.1.2 단일 테이블 전략
+
+> 테이블 하나만 사용하고 구분 컬럼으로 구분
+>
+
+# 주의 할 점 : 자식 엔티티가 매핑한 컬럼 모두 null 허용해야함
+
+→ 필요없는 컬럼이 많음
+
+- @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+
+### 장점
+
+- 조인 필요 없으므로 조회 성능 빠름
+- 조회 쿼리 단순함
+
+### 단점
+
+- 자식 엔티티 매핑 컬럼은 전부 null을 허용해야함
+- 단일 테이블에 다 저장하면 오히려 너무 커져서 더 느릴 수도 이음
+
+### 특징
+
+- 구분 컬럼 꼭 사용 @DiscriminatorColumn 필수
+    - 안쓰면 엔티티 이름을 사용함
+
+### 7.1.3 구현 클래스마다 테이블 전략
+
+> 자식 엔티티 마다 별도 테이블 생성
+>
+
+- @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+
+→ 추천하지 않는 전략
+
+### 장점
+
+- 서브 타입을 구분해서 처리할 때 효과적
+- not null 제약조건 사용 가능
+
+### 단점
+
+- 여러 자식 테이블 조회할 때 UNION 사용해야 해서 느림
+- 자식 테이블 통합해서 쿼리 하기 어려움
+
+### 특징
+
+- 구분 컬럼 사용하지 않음
+
+→ DBA, ORM 전문가 전부 추천하지 않는 전략
+
+## 7.2. @MappedSuperclass
+
+> 부모 클래스는 테이블과 매핑하지 않고 상속받는 자식 클래스에 매핑 정보만 제공
+>
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/97ca5d23-e1f1-4d90-ad3a-d15f35e1faea/Untitled.png)
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/8ab67044-f5e6-449e-93d9-e44ece5117d3/Untitled.png)
+
+부모로부터 물려받은 매핑정보 재정의
+
+→ @AttributeOverrides // @AttributeOverride
+
+연관관계 재정의
+
+→ @AssociationOverrides // @AssociationOverride
+
+- 공통 정보를 사용하는 클래스들의 매핑 정보 모으는 역할만 함
+    - 추상화 클래스 생성 권장
+
+## 7.3 복합 키와 식별 관계 매핑
+
+### 7.3.1 식별 관계 vs 비식별 관계
+
+> 외래키가 기본키에 포함되는지 여부에 따라 구분
+>
+
+### 식별 관계
+
+- 부모 테이블의 기본 키를 내려받아 자식 테이블의 기본 키 + 외래키로 사용
+
+  ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/0d9e794b-b9dd-449a-9bfd-aadb0e9561ab/Untitled.png)
+
+
+### 비식별 관계
+
+- 부모 테이블의 기본 키를 받아서 자식테이블의 외래키로만 사용
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/47b92b98-18b4-4259-aa5c-5ea712fdc73f/Untitled.png)
+
+1. 필수적 비식별 관계
+    1. NULL 허용 X
+    2. 연관관계 필수
+2. 선택적 비식별 관계
+    1. NULL 허용 O
+    2. 연관관계 선택
+
+→ 비식별 관계를 주로 사용하고 꼭 필요한 경우만 식별 관계 사용 권장
+
+### 7.3.2 복합 키 : 비식별 관계 매핑
+
+1. @IdClass : RDB에 가까운 방법
+    1. 식별자 클래스의 속성명, 엔티티에서 사용하는 식별자의 속성명 동일
+    2. Serializable 인터페이스 구현
+    3. equals, hashCode 재정의
+    4. ㅍ기본 생성자 필수
+    5. 식별자 클래스는 public
+2. @EmbeddedId : 객체지향에 가까운 방법
+    1. @Embeddable 어노테이션 붙여야함
+    2. Serializable 인터페이스 구현
+    3. equals, hashCode 재정의
+    4. 기본 생성자 필수
+    5. 식별자 클래스는 public
+
+   → @IdClass와의 차이점
+
+    1. 식별자 클래스에 기본 키 직접 매핑함
+
+        ```java
+        @Embeddable
+        public class ParentId implements Serializable{
+        	
+        	@Column(name = "PARENT_ID1")
+        	private String id1;
+        
+        	@Column(name = "PARENT_ID2")
+        	private String id2;	
+        	
+        	//equals , hashCode 재정의
+        }
+        ```
+
+    2. 키로 존재하는게 아니라 클래스 자체로 인스턴스 변수 가지고 있음
+
+**둘 다 equals(), hashCode() 재정의 반드시 할 것 주의**
+
+어떤 것을 선택 ?
+
+→ 취향 차이
+
+- EmbeddedId 는 JPQL 좀 더 길어질 수 있음
+
+### 7.3.3 복합 키 : 식별 관계 매핑
+
+→ 비식별 관계와 비슷하지만
+
+@IdClass 의 경우
+
+```java
+@Id 
+@ManyToOne
+@JoinColumn(name = "PARENT_ID")
+public Parent parent;
+
+@Id @Column(name = "CHILD_ID")
+private String childId;
+```
+
+```java
+public class ChildId implements Serializable {
+	private String parent; //Child.parent 매핑
+	private String childId; //Child.childId 매핑
+}
+```
+
+이런식으로 부모 클래스 인스턴스 변수로 가지고 추가로 IdClass 로 매핑
+
+@EmbeddedId 의 경우
+
+→ @MapsId 사용해야함
+
+```java
+@EmbeddedId
+private ChildId id;
+
+@MapsId("parentId")
+@ManyToOne
+@JoinColumn(name = "PARENT_ID")
+public Parent parent;
+
+private String name;
+```
+
+```java
+@Embeddable
+public class ChildId implements Serializable {
+	private String parentId; //@MapsId("parentId")로 매핑
+	
+	@Column(name = "CHILD_ID")
+	private String id;
+}
+```
+
+- @MapsId
+    - 외래키와 매핑한 연관관계를 기본키에도 매핑하는 어노테이션
+
+### 7.3.4 비식별 관계로 구현
+
+→ 비식별 관계로 구현하면 훨씬 간결하고 유지보수 하기 쉬워짐
+
+### 7.3.5 일대일 식별 관계
+
+- 부모테이블의 기본 키 값만 사용
+
+
+
+```java
+@Entity
+public class Board{
+	@Id @GenratedValue
+	@Column(name = "BOARD_ID")
+	private Long id;
+	
+	private String title;
+	
+	@OneToOne(mappedBy = "board")
+	private BoardDetail boardDetail;
+}
+```
+
+```java
+@Entity
+public class BoardDetail{
+
+  @Id
+	private Long boardId;
+	
+	@MapsId
+	@OneToOne
+	@JoinColumn(name = "BOARD_ID")
+	private Board board;
+	
+	private String content;
+}
+```
+
+### 7.3.6 식별, 비식별 관계의 장단점
+
+비 식별 관계 더 선호
+
+- 식별 관계는 자식 테이블의 기본 키 컬럼이 점점 늘어남
+
+  → 기본 키 인덱스 불필요하게 커질 수 있음
+
+- 복합 기본 키 만들어야 하는 경우 많음
+- 식별 관계에서 비즈니스와 관계 있는 키로 만드는 경우 많음
+
+  → 비즈니스에 의존적임
+
+- 테이블 구조가 유연하지 못함 (기본키 제약)
+
+## 7.4. 조인 테이블
+
+연관관계 설계 방법 두가지
+
+1. 조인 컬럼 사용(외래 키)
+
+   ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/ab8b90f3-4a71-48ca-b6a2-59163a674300/Untitled.png)
+
+    - 관계를 가끔 맺는 경우에는 NULL 값이 너무 많아짐
+2. 조인 테이블 사용
+
+   ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a8da4657-58ed-4483-8d1b-3efce9010f0f/bbc8a864-f213-42d6-adb5-697586c46423/Untitled.png)
+
+    - 테이블을 따로 생성해야하는 번거로움
+    - 주로 다대다 관계를 풀어내기 위해 사용
+
+## 7.5. 엔티티 하나에 여러 테이블 매핑
+
+@SecondaryTable 을 사용하여 한 엔티티에 여러 테이블 매핑 가능
+
+→ 써야 할 이유 찾기 힘들 듯 일대일 매핑 하는 것이 더 나은 방향
