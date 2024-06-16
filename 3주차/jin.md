@@ -139,3 +139,65 @@ private Set<String> favoriteFoods = new HashSet<String>();
 @CollectionTable(name = "ADDRESS", joinColumns = @JoinColumn(name = "MEMBER_ID"))
 private List<Address> addressHistory = new ArrayList<Address>();
 ```
+
+
+# 10장
+## TypedQuery
+```
+TypedQuery<Member> query = em.createQuery("SELECT m FROM Member m", Member.class);
+
+Query query = em.createQuery("SELECT m.username, m.age from Member m");
+```
+
+## 이름 기준 파라미터
+```
+TypedQuery<Member> query = em.createQuery("SELECT m FROM Member m where m.username = :username", Member.class);
+```
+
+## 프로젝션
+엔티티 프로젝션
+```
+select m from Member m
+```
+조회한 엔티티는 영속성 컨텍스트에서 관리된다.
+
+임베디드 타입 프로젝션
+```
+String query = "SELECT o.address FROM Order o"
+List<Address> addresses = em.createQuery(query, Address.class).getResultList();
+```
+임베디드 타입은 엔티티 타입이 아닌 값 타입이다. 따라서 이렇게 조회한 임베디드 타입은 영속성 컨텍스트에서 관리되지 않는다.
+
+## fetch join
+```
+select t from Team t join fetch t.members where t.name = '팀A'
+```
+sql
+```
+SELECT T.*, M.* FROM TEAM T
+INNER JOIN MEMBER M ON T.ID = M.TEAM_id
+WHERE T.NAME = '팀A"
+```
+최적화를 위해 글로벌 로딩 전략을 즉시 로딩으로 설정하면 애플리케이션 전체에서 항상 즉시 로딩이 일어난다.   
+물론 일부는 빠를 수는 있지만 전체로 보면 사용하지 않는 엔티티를 자주 로딩하므로 오히려 성능에 악영향을 미칠 수 있다.    
+따라서 글로벌 로딩 전략은 될 수 있으면 지연 로딩을 사용하고 최적화가 필요하면 페치 조인을 적용하는 것이 효과적이다.
+
+##  그 외
+###  엔티티를 파라미터로 받는 코드
+```
+String qlString = "select m from Member m where m = :member";
+List resultList = em.createQuery(qlString).setParameter("member", member)
+                    .getResultList();
+
+```
+-> select m.* from Member m where m.id=?
+
+```
+Team team = em.find(Team.class, 1L);
+
+String qlString = "select m from Member m where m.team = :team";
+List resultList = em.createQuery(qlString)
+                    .setParameter("team", team)
+                    .getResultList();
+```
+-> select m.* from Member m where m.team_id=?
